@@ -1868,7 +1868,7 @@ class TasksManager:
                         device = torch.device("cpu")
 
                     # TODO : fix EulerDiscreteScheduler loading to enable for SD models
-                    if version.parse(torch.__version__) >= version.parse("2.0") and library_name != "diffusers":
+                    if version.parse(torch.__version__) >= version.parse("2.0") and library_name != "diffusers" and device.type != "privateuseone":
                         with device:
                             # Initialize directly in the requested device, to save allocation time. Especially useful for large
                             # models to initialize on cuda device.
