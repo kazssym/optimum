@@ -241,6 +241,10 @@ class LlamaOnnxConfig(TextDecoderWithPositionIdsOnnxConfig):
     NORMALIZED_CONFIG_CLASS = NormalizedTextConfig
 
 
+class Qwen2OnnxConfig(LlamaOnnxConfig):
+    pass
+
+
 class GemmaOnnxConfig(LlamaOnnxConfig):
     DUMMY_INPUT_GENERATOR_CLASSES = (DummyTextInputGenerator, GemmaDummyPastKeyValuesGenerator)
     DUMMY_PKV_GENERATOR_CLASS = GemmaDummyPastKeyValuesGenerator
@@ -248,6 +252,7 @@ class GemmaOnnxConfig(LlamaOnnxConfig):
 
 
 class PhiOnnxConfig(TextDecoderWithPositionIdsOnnxConfig):
+    DEFAULT_ONNX_OPSET = 14  # Phi now uses F.scaled_dot_product_attention by default for torch>=2.1.1.
     NORMALIZED_CONFIG_CLASS = NormalizedTextConfig
 
 

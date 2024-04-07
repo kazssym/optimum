@@ -265,6 +265,7 @@ class NormalizedConfigManager:
         "whisper": WhisperLikeNormalizedTextConfig,
         "xlm-roberta": NormalizedTextConfig,
         "yolos": NormalizedVisionConfig,
+        "qwen2": NormalizedTextConfig,
     }
 
     @classmethod

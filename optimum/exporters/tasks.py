@@ -168,7 +168,6 @@ class TasksManager:
             "feature-extraction": "AutoModel",
             "fill-mask": "AutoModelForMaskedLM",
             "image-classification": "AutoModelForImageClassification",
-            "image-feature-extraction": "AutoModel",
             "image-segmentation": ("AutoModelForImageSegmentation", "AutoModelForSemanticSegmentation"),
             "image-to-image": "AutoModelForImageToImage",
             "image-to-text": "AutoModelForVision2Seq",
@@ -257,6 +256,7 @@ class TasksManager:
         "translation": "text2text-generation",
         "vision2seq-lm": "image-to-text",
         "zero-shot-classification": "text-classification",
+        "image-feature-extraction": "feature-extraction",
     }
 
     # Reverse dictionaries str -> str, where several model loaders may map to the same task
@@ -463,13 +463,11 @@ class TasksManager:
         ),
         "convnext": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "image-classification",
             onnx="ConvNextOnnxConfig",
         ),
         "convnextv2": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "image-classification",
             onnx="ConvNextV2OnnxConfig",
         ),
@@ -486,7 +484,6 @@ class TasksManager:
         "data2vec-vision": supported_tasks_mapping(
             "feature-extraction",
             "image-classification",
-            "image-feature-extraction",
             # ONNX doesn't support `adaptive_avg_pool2d` yet
             # "semantic-segmentation",
             onnx="Data2VecVisionOnnxConfig",
@@ -520,7 +517,6 @@ class TasksManager:
         ),
         "deit": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "image-classification",
             "masked-im",
             onnx="DeiTOnnxConfig",
@@ -528,7 +524,6 @@ class TasksManager:
         "detr": supported_tasks_mapping(
             "feature-extraction",
             "object-detection",
-            "image-feature-extraction",
             "image-segmentation",
             onnx="DetrOnnxConfig",
         ),
@@ -555,8 +550,9 @@ class TasksManager:
         ),
         "dpt": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "depth-estimation",
+            "image-segmentation",
+            "semantic-segmentation",
             onnx="DptOnnxConfig",
         ),
         "electra": supported_tasks_mapping(
@@ -612,7 +608,6 @@ class TasksManager:
         ),
         "glpn": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "depth-estimation",
             onnx="GlpnOnnxConfig",
         ),
@@ -680,7 +675,6 @@ class TasksManager:
         ),
         "imagegpt": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "image-classification",
             onnx="ImageGPTOnnxConfig",
         ),
@@ -712,9 +706,7 @@ class TasksManager:
             "token-classification",
             onnx="LiltOnnxConfig",
         ),
-        "levit": supported_tasks_mapping(
-            "feature-extraction", "image-classification", "image-feature-extraction", onnx="LevitOnnxConfig"
-        ),
+        "levit": supported_tasks_mapping("feature-extraction", "image-classification", onnx="LevitOnnxConfig"),
         "longt5": supported_tasks_mapping(
             "feature-extraction",
             "feature-extraction-with-past",
@@ -778,19 +770,17 @@ class TasksManager:
         "mobilevit": supported_tasks_mapping(
             "feature-extraction",
             "image-classification",
-            "image-feature-extraction",
             "image-segmentation",
             onnx="MobileViTOnnxConfig",
         ),
         "mobilenet-v1": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "image-classification",
             onnx="MobileNetV1OnnxConfig",
         ),
         "mobilenet-v2": supported_tasks_mapping(
+            "feature-extraction",
             "image-classification",
-            "image-feature-extraction",
             onnx="MobileNetV2OnnxConfig",
         ),
         "mpnet": supported_tasks_mapping(
@@ -851,6 +841,14 @@ class TasksManager:
             "text-classification",
             onnx="OPTOnnxConfig",
         ),
+        "qwen2": supported_tasks_mapping(
+            "feature-extraction",
+            "feature-extraction-with-past",
+            "text-generation",
+            "text-generation-with-past",
+            "text-classification",
+            onnx="Qwen2OnnxConfig",
+        ),
         "llama": supported_tasks_mapping(
             "feature-extraction",
             "feature-extraction-with-past",
@@ -891,20 +889,17 @@ class TasksManager:
         ),
         "poolformer": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "image-classification",
             onnx="PoolFormerOnnxConfig",
         ),
         "regnet": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "image-classification",
             onnx="RegNetOnnxConfig",
         ),
         "resnet": supported_tasks_mapping(
             "feature-extraction",
             "image-classification",
-            "image-feature-extraction",
             onnx="ResNetOnnxConfig",
             tflite="ResNetTFLiteConfig",
         ),
@@ -940,7 +935,6 @@ class TasksManager:
         "segformer": supported_tasks_mapping(
             "feature-extraction",
             "image-classification",
-            "image-feature-extraction",
             "image-segmentation",
             "semantic-segmentation",
             onnx="SegformerOnnxConfig",
@@ -993,14 +987,12 @@ class TasksManager:
         ),
         "swin": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "image-classification",
             "masked-im",
             onnx="SwinOnnxConfig",
         ),
         "swin2sr": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "image-to-image",
             onnx="Swin2srOnnxConfig",
         ),
@@ -1013,7 +1005,6 @@ class TasksManager:
         ),
         "table-transformer": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "object-detection",
             onnx="TableTransformerOnnxConfig",
         ),
@@ -1046,7 +1037,7 @@ class TasksManager:
             onnx="VisionEncoderDecoderOnnxConfig",
         ),
         "vit": supported_tasks_mapping(
-            "feature-extraction", "image-classification", "image-feature-extraction", "masked-im", onnx="ViTOnnxConfig"
+            "feature-extraction", "image-classification", "masked-im", onnx="ViTOnnxConfig"
         ),
         "wavlm": supported_tasks_mapping(
             "feature-extraction",
@@ -1106,7 +1097,6 @@ class TasksManager:
         ),
         "yolos": supported_tasks_mapping(
             "feature-extraction",
-            "image-feature-extraction",
             "object-detection",
             onnx="YolosOnnxConfig",
         ),
@@ -1384,6 +1374,7 @@ class TasksManager:
         model_name_or_path: Union[str, Path],
         subfolder: str = "",
         cache_dir: str = huggingface_hub.constants.HUGGINGFACE_HUB_CACHE,
+        use_auth_token: Optional[str] = None,
     ):
         request_exception = None
         full_model_path = Path(model_name_or_path) / subfolder
@@ -1397,7 +1388,9 @@ class TasksManager:
             try:
                 if not isinstance(model_name_or_path, str):
                     model_name_or_path = str(model_name_or_path)
-                all_files = huggingface_hub.list_repo_files(model_name_or_path, repo_type="model")
+                all_files = huggingface_hub.list_repo_files(
+                    model_name_or_path, repo_type="model", token=use_auth_token
+                )
                 if subfolder != "":
                     all_files = [file[len(subfolder) + 1 :] for file in all_files if file.startswith(subfolder)]
             except RequestsConnectionError as e:  # Hub not accessible
@@ -1575,7 +1568,14 @@ class TasksManager:
             library_name = TasksManager.infer_library_from_model(model_name_or_path, subfolder, revision)
 
             if library_name == "diffusers":
-                class_name = model_info.config["diffusers"]["class_name"]
+                if model_info.config["diffusers"].get("class_name", None):
+                    class_name = model_info.config["diffusers"]["class_name"]
+                elif model_info.config["diffusers"].get("_class_name", None):
+                    class_name = model_info.config["diffusers"]["_class_name"]
+                else:
+                    raise ValueError(
+                        f"Could not automatically infer the class name for {model_name_or_path}. Please open an issue at https://github.com/huggingface/optimum/issues."
+                    )
                 inferred_task_name = "stable-diffusion-xl" if "StableDiffusionXL" in class_name else "stable-diffusion"
             elif library_name == "timm":
                 inferred_task_name = "image-classification"
@@ -1678,6 +1678,7 @@ class TasksManager:
         revision: Optional[str] = None,
         cache_dir: str = huggingface_hub.constants.HUGGINGFACE_HUB_CACHE,
         library_name: Optional[str] = None,
+        use_auth_token: Optional[str] = None,
     ):
         """
         Infers the library from the model repo.
@@ -1695,13 +1696,17 @@ class TasksManager:
                 Path to a directory in which a downloaded pretrained model weights have been cached if the standard cache should not be used.
             library_name (`Optional[str]`, *optional*):
                 The library name of the model. Can be any of "transformers", "timm", "diffusers", "sentence_transformers".
+            use_auth_token (`Optional[str]`, defaults to `None`):
+                The token to use as HTTP bearer authorization for remote files.
         Returns:
             `str`: The library name automatically detected from the model repo.
         """
         if library_name is not None:
             return library_name
 
-        all_files, _ = TasksManager.get_model_files(model_name_or_path, subfolder, cache_dir)
+        all_files, _ = TasksManager.get_model_files(
+            model_name_or_path, subfolder, cache_dir, use_auth_token=use_auth_token
+        )
 
         if "model_index.json" in all_files:
             library_name = "diffusers"
@@ -1716,6 +1721,7 @@ class TasksManager:
                 "subfolder": subfolder,
                 "revision": revision,
                 "cache_dir": cache_dir,
+                "use_auth_token": use_auth_token,
             }
             config_dict, kwargs = PretrainedConfig.get_config_dict(model_name_or_path, **kwargs)
             model_config = PretrainedConfig.from_dict(config_dict, **kwargs)

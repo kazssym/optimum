@@ -129,10 +129,11 @@ PYTORCH_EXPORT_MODELS_TINY = {
         "hf-internal-testing/tiny-random-language_perceiver": ["fill-mask", "text-classification"],
         "hf-internal-testing/tiny-random-vision_perceiver_conv": ["image-classification"],
     },
-    "phi": "hf-internal-testing/tiny-random-PhiForCausalLM",
+    "phi": "echarlaix/tiny-random-PhiForCausalLM",
     "pix2struct": "fxmarty/pix2struct-tiny-random",
     # "rembert": "google/rembert",
     "poolformer": "hf-internal-testing/tiny-random-PoolFormerModel",
+    "qwen2": "fxmarty/tiny-dummy-qwen2",
     "regnet": "hf-internal-testing/tiny-random-RegNetModel",
     "resnet": "hf-internal-testing/tiny-random-resnet",
     "roberta": "hf-internal-testing/tiny-random-RobertaModel",
@@ -336,7 +337,10 @@ PYTORCH_TIMM_MODEL = {
 
 PYTORCH_SENTENCE_TRANSFORMERS_MODEL = {
     "clip": "sentence-transformers/clip-ViT-B-32",
-    "transformer": "sentence-transformers/all-MiniLM-L6-v2",
+    "transformer": {
+        "sentence-transformers/all-MiniLM-L6-v2": ["feature-extraction", "sentence-similarity"],
+        "fxmarty/tiny-dummy-mistral-sentence-transformer": ["feature-extraction", "sentence-similarity"],
+    },
 }
 
 
