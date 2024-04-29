@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import huggingface_hub
+from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
 from packaging import version
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from transformers import AutoConfig, PretrainedConfig, is_tf_available, is_torch_available
@@ -177,7 +178,7 @@ class TasksManager:
             "object-detection": "AutoModelForObjectDetection",
             "question-answering": "AutoModelForQuestionAnswering",
             "semantic-segmentation": "AutoModelForSemanticSegmentation",
-            "text-to-audio": "AutoModelForTextToSpectrogram",
+            "text-to-audio": ("AutoModelForTextToSpectrogram", "AutoModelForTextToWaveform"),
             "text-generation": "AutoModelForCausalLM",
             "text2text-generation": "AutoModelForSeq2SeqLM",
             "text-classification": "AutoModelForSequenceClassification",
@@ -334,6 +335,7 @@ class TasksManager:
 
     # TODO: some models here support text-generation export but are not supported in ORTModelForCausalLM
     # Set of model topologies we support associated to the tasks supported by each topology and the factory
+    # TODO: remove `-with-past` tasks and rather rely on `variant`.
     _SUPPORTED_MODEL_TYPE = {
         "audio-spectrogram-transformer": supported_tasks_mapping(
             "feature-extraction",
@@ -732,6 +734,13 @@ class TasksManager:
             "text-generation-with-past",
             onnx="MarianOnnxConfig",
         ),
+        "markuplm": supported_tasks_mapping(
+            "feature-extraction",
+            "text-classification",
+            "token-classification",
+            "question-answering",
+            onnx="MarkupLMOnnxConfig",
+        ),
         "mbart": supported_tasks_mapping(
             "feature-extraction",
             "feature-extraction-with-past",
@@ -805,6 +814,10 @@ class TasksManager:
             "text2text-generation",
             "text2text-generation-with-past",
             onnx="MT5OnnxConfig",
+        ),
+        "musicgen": supported_tasks_mapping(
+            "text-to-audio",  # "variant" handles the "-with-past". We should generalize that.
+            onnx="MusicgenOnnxConfig",
         ),
         "m2m-100": supported_tasks_mapping(
             "feature-extraction",
@@ -1373,8 +1386,9 @@ class TasksManager:
     def get_model_files(
         model_name_or_path: Union[str, Path],
         subfolder: str = "",
-        cache_dir: str = huggingface_hub.constants.HUGGINGFACE_HUB_CACHE,
+        cache_dir: str = HUGGINGFACE_HUB_CACHE,
         use_auth_token: Optional[str] = None,
+        revision: Optional[str] = None,
     ):
         request_exception = None
         full_model_path = Path(model_name_or_path) / subfolder
@@ -1389,21 +1403,25 @@ class TasksManager:
                 if not isinstance(model_name_or_path, str):
                     model_name_or_path = str(model_name_or_path)
                 all_files = huggingface_hub.list_repo_files(
-                    model_name_or_path, repo_type="model", token=use_auth_token
+                    model_name_or_path,
+                    repo_type="model",
+                    token=use_auth_token,
+                    revision=revision,
                 )
                 if subfolder != "":
                     all_files = [file[len(subfolder) + 1 :] for file in all_files if file.startswith(subfolder)]
-            except RequestsConnectionError as e:  # Hub not accessible
+            except (RequestsConnectionError, huggingface_hub.utils._http.OfflineModeIsEnabled) as e:
                 request_exception = e
                 object_id = model_name_or_path.replace("/", "--")
                 full_model_path = Path(cache_dir, f"models--{object_id}")
                 if full_model_path.is_dir():  # explore the cache first
                     # Resolve refs (for instance to convert main to the associated commit sha)
-                    revision_file = Path(full_model_path, "refs", "main")
-                    revision = ""
-                    if revision_file.is_file():
-                        with open(revision_file) as f:
-                            revision = f.read()
+                    if revision is None:
+                        revision_file = Path(full_model_path, "refs", "main")
+                        revision = ""
+                        if revision_file.is_file():
+                            with open(revision_file) as f:
+                                revision = f.read()
                     cached_path = Path(full_model_path, "snapshots", revision, subfolder)
                     all_files = [
                         os.path.relpath(os.path.join(dirpath, file), cached_path)
@@ -1418,7 +1436,7 @@ class TasksManager:
         model_name_or_path: Union[str, Path],
         subfolder: str = "",
         framework: Optional[str] = None,
-        cache_dir: str = huggingface_hub.constants.HUGGINGFACE_HUB_CACHE,
+        cache_dir: str = HUGGINGFACE_HUB_CACHE,
     ) -> str:
         """
         Determines the framework to use for the export.
@@ -1564,7 +1582,12 @@ class TasksManager:
                 raise RuntimeError(
                     "Cannot infer the task from a model repo with a subfolder yet, please specify the task manually."
                 )
-            model_info = huggingface_hub.model_info(model_name_or_path, revision=revision)
+            try:
+                model_info = huggingface_hub.model_info(model_name_or_path, revision=revision)
+            except (RequestsConnectionError, huggingface_hub.utils._http.OfflineModeIsEnabled):
+                raise RuntimeError(
+                    f"Hugging Face Hub is not reachable and we cannot infer the task from a cached model. Make sure you are not offline, or otherwise please specify the `task` (or `--task` in command-line) argument ({', '.join(TasksManager.get_all_tasks())})."
+                )
             library_name = TasksManager.infer_library_from_model(model_name_or_path, subfolder, revision)
 
             if library_name == "diffusers":
@@ -1656,7 +1679,10 @@ class TasksManager:
         if library_name is not None:
             return library_name
 
-        if (
+        # SentenceTransformer models have no config attributes
+        if hasattr(model, "_model_config"):
+            library_name = "sentence_transformers"
+        elif (
             hasattr(model, "pretrained_cfg")
             or hasattr(model.config, "pretrained_cfg")
             or hasattr(model.config, "architecture")
@@ -1664,8 +1690,6 @@ class TasksManager:
             library_name = "timm"
         elif hasattr(model.config, "_diffusers_version") or getattr(model, "config_name", "") == "model_index.json":
             library_name = "diffusers"
-        elif hasattr(model, "_model_config"):
-            library_name = "sentence_transformers"
         else:
             library_name = "transformers"
         return library_name
@@ -1676,7 +1700,7 @@ class TasksManager:
         model_name_or_path: Union[str, Path],
         subfolder: str = "",
         revision: Optional[str] = None,
-        cache_dir: str = huggingface_hub.constants.HUGGINGFACE_HUB_CACHE,
+        cache_dir: str = HUGGINGFACE_HUB_CACHE,
         library_name: Optional[str] = None,
         use_auth_token: Optional[str] = None,
     ):
@@ -1823,7 +1847,7 @@ class TasksManager:
         subfolder: str = "",
         revision: Optional[str] = None,
         framework: Optional[str] = None,
-        cache_dir: Optional[str] = None,
+        cache_dir: str = HUGGINGFACE_HUB_CACHE,
         torch_dtype: Optional["torch.dtype"] = None,
         device: Optional[Union["torch.device", str]] = None,
         library_name: str = None,
@@ -1890,7 +1914,6 @@ class TasksManager:
         model_class = TasksManager.get_model_class_for_task(
             task, framework, model_type=model_type, model_class_name=model_class_name, library=library_name
         )
-
         if library_name == "timm":
             model = model_class(f"hf_hub:{model_name_or_path}", pretrained=True, exportable=True)
             model = model.to(torch_dtype).to(device)

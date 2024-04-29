@@ -133,6 +133,7 @@ class ORTConfigManager:
         "vit": "vit",
         "whisper": "bart",
         "xlm-roberta": "bert",
+        "pix2struct": "vit",
     }
 
     @classmethod
